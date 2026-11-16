@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'">
+<title>Roohu Connect</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<aside><div class="brand"><span class="inf">∞</span> ROOHU CONNECT</div>
+<nav><a class="on">Dashboard</a></nav><div class="foot">v0.1.0 · M1</div></aside>
+<main>
+<h1>Dashboard</h1>
+<p id="err" class="errtxt" hidden></p>
+<section class="card"><h3 id="pcname"></h3><p id="addr"></p></section>
+<section class="card"><h3>Pair a phone</h3>
+<button id="pairBtn">Pair new phone</button>
+<div id="pairBox" class="pair" hidden><img id="qr" width="220" height="220" alt="QR code">
+<div><p>Scan with the Roohu Connect app, or type this code:</p><div id="pin" class="pin"></div><p id="left"></p></div></div></section>
+<section class="card"><h3>Paired phones</h3><ul id="devs"></ul></section>
+</main><script src="renderer.js"></script></body></html>
