@@ -1,0 +1,21 @@
+name: Windows installer
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults: { run: { working-directory: desktop } }
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install
+      - name: Protocol test (needs real ws; certificate stand-in not used here)
+        run: node --check server.js && node --check main.js
+      - run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RoohuConnect-Windows
+          path: desktop/dist/*.exe
+          if-no-files-found: error
