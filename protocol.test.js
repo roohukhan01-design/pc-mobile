@@ -1,0 +1,26 @@
+const crypto=require('crypto'),WebSocket=require('ws');
+const {Hub}=require('/home/claude/rc/desktop/server.js');
+const hub=new Hub('/tmp/t/data');hub.start();
+const url='wss://127.0.0.1:'+process.env.ROOHU_PORT+'/ws';
+const hm=(k,d)=>crypto.createHmac('sha256',k).update(d).digest('hex');
+const conn=(send)=>new Promise(res=>{const ws=new WebSocket(url,{rejectUnauthorized:false});const out=[];
+ ws.on('message',r=>{const m=JSON.parse(r);out.push(m);if(m.t==='hello')ws.send(JSON.stringify(send(m)));else if(m.t!=='hello'){ }});
+ ws.on('close',()=>res(out));setTimeout(()=>{ws.close()},800)});
+const r=(n,ok,x)=>console.log((ok?'PASS':'FAIL')+' '+n+(ok?'':' '+JSON.stringify(x)));
+(async()=>{
+ let o=await conn(m=>({t:'pair',id:'p1',name:'T',proof:'x'}));r('pair without active code rejected',o.some(m=>m.t==='error'),o);
+ let p=hub.newPairing();
+ o=await conn(m=>({t:'pair',id:'p1',name:'T',proof:hm('000000'===p.pin?'111111':'000000',m.nonce+hub.fp)}));r('wrong code rejected',o.some(m=>m.t==='error'&&/Wrong/.test(m.msg)),o);
+ o=await conn(m=>({t:'pair',id:'p1',name:'Phone',proof:hm(p.pin,m.nonce+hub.fp)}));
+ const paired=o.find(m=>m.t==='paired');r('correct code pairs',!!paired,o);
+ o=await conn(m=>({t:'pair',id:'p2',name:'Phone',proof:hm(p.pin,m.nonce+hub.fp)}));r('code is one-use',o.some(m=>m.t==='error'),o);
+ o=await conn(m=>({t:'auth',id:'p1',token:paired.token}));r('saved token reconnects',o.some(m=>m.t==='ok'),o);
+ o=await conn(m=>({t:'auth',id:'p1',token:'bad'}));r('bad token rejected',o.some(m=>m.t==='error'),o);
+ o=await conn(m=>({t:'auth',id:'nobody',token:paired.token}));r('unknown device rejected',o.some(m=>m.t==='error'),o);
+ hub.forget('p1');o=await conn(m=>({t:'auth',id:'p1',token:paired.token}));r('forgotten device rejected',o.some(m=>m.t==='error'),o);
+ p=hub.newPairing();let bad=0;
+ for(let i=0;i<5;i++)await conn(m=>({t:'pair',id:'p3',name:'x',proof:hm('999999'===p.pin?'111111':'999999',m.nonce+hub.fp)}));
+ o=await conn(m=>({t:'pair',id:'p3',name:'x',proof:hm(p.pin,m.nonce+hub.fp)}));r('code dies after 5 wrong tries',!o.some(m=>m.t==='paired'),o);
+ const raw=JSON.parse(require('fs').readFileSync('/tmp/t/data/trusted.json'));r('token stored only as hash',!JSON.stringify(raw).includes(paired.token));
+ hub.stop();process.exit(0);
+})();
